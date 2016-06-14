@@ -44,14 +44,14 @@ for PACKAGE in \
   core \
   compiler \
   common \
-  platform-browser \
-  platform-browser-dynamic \
-  platform-server \
-  http \
-  router \
-  router-deprecated \
-  upgrade \
-  compiler-cli
+#  platform-browser \
+#  platform-browser-dynamic \
+#  platform-server \
+#  http \
+#  router \
+#  router-deprecated \
+#  upgrade \
+#  compiler-cli
 do
   SRCDIR=./modules/@angular/${PACKAGE}
   DESTDIR=./dist/packages-dist/${PACKAGE}

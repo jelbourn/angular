@@ -10,7 +10,7 @@ import {
   beforeEachProviders,
   inject,
 } from '@angular/core/testing/testing_internal';
-import {fakeAsync, flushMicrotasks, Log, tick, containsRegexp} from '@angular/core/testing';
+import {fakeAsync, flushMicrotasks, Log, tick, containsRegexp, async} from '@angular/core/testing';
 import {TestComponentBuilder, ComponentFixture} from '@angular/compiler/testing';
 import {isBlank} from '../../src/facade/lang';
 import {
@@ -35,7 +35,10 @@ import {
   InjectMetadata,
   Pipe,
   Host,
-  SkipSelfMetadata
+  SkipSelfMetadata,
+  Injectable,
+  Renderer,
+  ViewChild,
 } from '@angular/core';
 import {NgIf, NgFor} from '@angular/common';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
@@ -94,6 +97,48 @@ class SimpleComponent {
 }
 
 class SimpleService {}
+
+@Injectable()
+class ServiceThatInjectsBuiltIns {
+  constructor(
+      public elementRef: ElementRef,
+      public viewContainerRef: ViewContainerRef,
+      public renderer: Renderer) {
+  }
+}
+
+@Component({
+  selector: 'child-of-directive-that-provides',
+  template: '<p> Actual cakes </p>'
+})
+class ChildOfComponentThatProvidesServiceThatInjectsBuiltIns {
+  constructor(public serviceUnderTest: ServiceThatInjectsBuiltIns) { }
+}
+
+@Component({
+  selector: 'directive-that-provides',
+  template: `
+    <p> Pancakes </p>
+    <child-of-directive-that-provides>
+    </child-of-directive-that-provides>`,
+  providers: [ServiceThatInjectsBuiltIns],
+  directives: [ChildOfComponentThatProvidesServiceThatInjectsBuiltIns]
+})
+class ComponentThatProvidesServiceThatInjectsBuiltIns {
+  @ViewChild(ChildOfComponentThatProvidesServiceThatInjectsBuiltIns) child:
+      ChildOfComponentThatProvidesServiceThatInjectsBuiltIns;
+
+  constructor(
+      public elementRef: ElementRef,
+      public viewContainerRef: ViewContainerRef,
+      public renderer: Renderer,
+      public serviceUnderTest: ServiceThatInjectsBuiltIns) { }
+
+  ngAfterViewInit() {
+    console.log(this.child);
+  }
+}
+
 
 @Directive({selector: '[someOtherDirective]'})
 class SomeOtherDirective {
@@ -646,6 +691,32 @@ export function main() {
            var instance = el.children[0].inject(OptionallyNeedsTemplateRef);
            expect(instance.templateRef).toBeNull();
          }));
+
+     iit('should test my thing', async(() => {
+        tcb.createAsync(ComponentThatProvidesServiceThatInjectsBuiltIns).then(fixture => {
+          var testComponentInstance = fixture.componentInstance;
+          var serviceUnderTest = testComponentInstance.serviceUnderTest;
+
+          expect(testComponentInstance.viewContainerRef)
+              .toEqual(serviceUnderTest.viewContainerRef);
+          expect(testComponentInstance.elementRef)
+              .toEqual(serviceUnderTest.elementRef);
+          expect(testComponentInstance.renderer)
+              .toEqual(serviceUnderTest.renderer);
+
+          // When the service is injected in a child component, it should still have the
+          // built-ins from the locaion in the tree from which it was provided.
+          fixture.whenStable().then(() => {
+            expect(testComponentInstance.viewContainerRef)
+                .toEqual(testComponentInstance.child.serviceUnderTest.viewContainerRef);
+            expect(testComponentInstance.elementRef)
+                .toEqual(testComponentInstance.child.serviceUnderTest.elementRef);
+            expect(testComponentInstance.renderer)
+                .toEqual(testComponentInstance.child.serviceUnderTest.renderer);
+            expect(1).toBe(2);
+          });
+        });
+     }));
     });
 
     describe('pipes', () => {
