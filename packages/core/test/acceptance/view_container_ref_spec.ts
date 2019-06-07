@@ -1685,6 +1685,24 @@ describe('ViewContainerRef', () => {
           .toBe(`<child><div>text</div></child>`);
     });
   });
+
+  describe('I have no idea', () => {
+    it('should reproduce a bug', () => {
+      TestBed.configureTestingModule({declarations: [NgContainerWithNestedNgIfTemplate]});
+      const fixture = TestBed.createComponent(NgContainerWithNestedNgIfTemplate);
+      const component = fixture.componentInstance;
+
+      fixture.detectChanges();
+
+      const contact = component.contacts.shift()!;
+      component.contacts = [...component.contacts];
+      fixture.detectChanges();
+
+      component.contacts.unshift(contact);
+      component.contacts = [...component.contacts];
+      fixture.detectChanges();
+    });
+  });
 });
 
 @Component({
@@ -1801,3 +1819,30 @@ class ConstructorApp {
 class ConstructorAppWithQueries {
   @ViewChild('foo', {static: true}) foo !: TemplateRef<any>;
 }
+
+
+
+@Component({
+  selector: 'nested-containers',
+  template: `
+  <div #contactsList>
+    <ng-container *ngFor="let c of contacts; trackBy: contactsListTrackBy; let i = index;">
+      <ng-template [ngIf]="i < 50">
+        xxx
+      </ng-template>
+    </ng-container>
+  </div>`,
+})
+class NgContainerWithNestedNgIfTemplate {
+  @ViewChild('contactsList', {read: ElementRef, static: false})
+  private contactsListRef!: ElementRef<HTMLElement>;
+
+  contacts = [
+    {id: '123', name: 'Alice'},
+    {id: '456', name: 'Eve'},
+    {id: '789', name: 'Bob'},
+  ];
+
+  contactsListTrackBy = (item: any) => item.id;
+}
+
