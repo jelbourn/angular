@@ -6,7 +6,20 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, ComponentFactoryResolver, ComponentRef, InjectionToken, NgModule, OnDestroy, Type, ViewChild, ViewContainerRef, ViewEncapsulation} from '@angular/core';
+import {
+  Component,
+  ComponentFactoryResolver,
+  ComponentRef,
+  ElementRef,
+  InjectionToken,
+  NgModule,
+  OnDestroy,
+  Renderer2,
+  Type,
+  ViewChild,
+  ViewContainerRef,
+  ViewEncapsulation,
+} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
@@ -149,6 +162,44 @@ describe('component', () => {
       expect(html).toMatch(
           `<leaf ${match[0].replace('_nghost', '_ngcontent')}="" ${match[1]}=""><span ${match[1].replace('_nghost', '_ngcontent')}="">bar</span></leaf></div>`);
     });
+
+    fit('should use a new ngcontent attribute for child elements created w/ Renderer2', () => {
+      @Component({
+        selector: 'app-root',
+        template: '<parent-comp></parent-comp>',
+        styles: [''], // `styles` must exist for encapsulation to apply.
+        encapsulation: ViewEncapsulation.Emulated,
+      })
+      class AppRoot { }
+
+      @Component({
+        selector: 'parent-comp',
+        template: '',
+        styles: [''], // `styles` must exist for encapsulation to apply.
+        encapsulation: ViewEncapsulation.Emulated,
+      })
+      class ParentComponent {
+        elementFromRenderer: HTMLElement;
+
+        constructor(elementRef: ElementRef, renderer: Renderer2) {
+          this.elementFromRenderer = renderer.createElement('p');
+          renderer.appendChild(elementRef.nativeElement, this.elementFromRenderer);
+        }
+      }
+
+      TestBed.configureTestingModule({declarations: [AppRoot, ParentComponent]});
+      const fixture = TestBed.createComponent(AppRoot);
+      fixture.detectChanges();
+
+      const secondParentEl: HTMLElement = fixture.nativeElement.querySelector('parent-comp');
+      const elementFromRenderer: HTMLElement = fixture.nativeElement.querySelector('p');
+
+      const hostNgContentAttr = getNgContentAttr(secondParentEl);
+      const viewNgContentAttr = getNgContentAttr(elementFromRenderer);
+      expect(hostNgContentAttr).not.toBe(viewNgContentAttr,
+          'Expected child manually created via Renderer2 to have a different view encapsulation' +
+           'attribute than its host element');
+    });
   });
 
   describe('view destruction', () => {
@@ -179,3 +230,7 @@ describe('component', () => {
     });
   });
 });
+
+function getNgContentAttr(element: HTMLElement): string | undefined {
+  return Array.from(element.attributes).map(a => a.name).find(a => /ngcontent/.test(a));
+}
