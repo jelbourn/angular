@@ -757,7 +757,6 @@ class TestCmptWithPropBindings {
       expect(element.attributes.svgicon).toBeFalsy();
     });
 
-
     it('should include namespaced attributes in DebugNode.attributes', () => {
       @Component({
         template: `<div xlink:href="foo"></div>`,
@@ -789,5 +788,43 @@ class TestCmptWithPropBindings {
       expect(div.attributes.foo).toBe('bar');
     });
 
+    describe('DebugNode.context', () => {
+      @Component({
+        moduleId: module.id,
+        template: `<leaf-component></leaf-component>`,
+        selector: 'test-component',
+      })
+      class ContainerComponent { }
+
+      @Component({
+        moduleId: module.id,
+        template: `<ng-container *ngIf="true"><leaf-component></leaf-component></ng-container>`,
+        selector: 'test-component',
+      })
+      class ContainerWithNgIf { }
+
+      @Component({
+        selector: 'leaf-component',
+        template: 'leaf',
+      })
+      class LeafComponent { }
+
+      it('should set the context of the DebugNode', () => {
+        TestBed.configureTestingModule({declarations: [ContainerComponent, LeafComponent]});
+        const fixture = TestBed.createComponent(ContainerComponent);
+
+        const leafDebugEl = fixture.debugElement.query(By.css('leaf-component'));
+        expect(leafDebugEl.context).toBe(leafDebugEl.componentInstance);
+      });
+
+      it('should set the context of the DebugNode when ngIf is involved', () => {
+        TestBed.configureTestingModule({declarations: [ContainerWithNgIf, LeafComponent]});
+        const fixture = TestBed.createComponent(ContainerWithNgIf);
+        fixture.detectChanges();
+
+        const leafDebugEl = fixture.debugElement.query(By.css('leaf-component'));
+        expect(leafDebugEl.context).toBe(leafDebugEl.componentInstance);
+      });
+    });
   });
 }
