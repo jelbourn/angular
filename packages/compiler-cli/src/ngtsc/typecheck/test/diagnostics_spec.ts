@@ -1237,6 +1237,7 @@ class TestComponent {
       id: string,
       inputs: Record<string, {type: string, isSignal: boolean, restrictionModifier?: string}>,
       template: string,
+      extraDirectiveMembers?: string[],
       component?: string, expected: (string|jasmine.AsymmetricMatcher<string>)[],
       options?: Partial<TypeCheckingConfig>,
       focus?: boolean,
@@ -1443,7 +1444,23 @@ class TestComponent {
               honorAccessModifiersForInputBindings: false,
             },
           },
-          // coercion not supported
+          // coercion is not supported / respected
+          {
+            id: 'coercion members are not respected',
+            inputs: {
+              pattern: {
+                type: 'InputSignal<string, string>',
+                isSignal: true,
+              },
+            },
+            extraDirectiveMembers: [
+              'static ngAcceptInputType_pattern: string|boolean',
+            ],
+            template: `<div dir [pattern]="false">`,
+            expected: [
+              `TestComponent.html(1, 11): Type 'boolean' is not assignable to type 'string'.`,
+            ],
+          },
           // transforms
           {
             id: 'signal inputs write transform type respected',
@@ -1469,6 +1486,7 @@ class TestComponent {
 
           class Dir {
             ${inputFields.join('\n')}
+            ${c.extraDirectiveMembers?.join('\n') ?? ''}
           }
           class TestComponent {
             ${c.component ?? ''}
