@@ -8,3 +8,4 @@
 
 export {input as ɵinput, InputFunction as ɵInputFunction, inputFunction as ɵinputFunctionForApiGuard, inputRequiredFunction as ɵinputFunctionRequiredForApiGuard} from './authoring/input';
 export {InputOptions as ɵInputOptions, InputOptionsWithoutTransform as ɵInputOptionsWithoutTransform, InputOptionsWithTransform as ɵInputOptionsWithTransform, InputSignal, ɵINPUT_SIGNAL_BRAND_WRITE_TYPE} from './authoring/input_signal';
+export {ɵUnwrapDirectiveSignalInputs} from './authoring/input_type_checking';
