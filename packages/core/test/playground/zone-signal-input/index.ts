@@ -6,14 +6,51 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, Input, signal, ɵinput as input} from '@angular/core';
+import {Component, computed, Directive, Input, signal, ɵinput as input, inject} from '@angular/core';
 import {bootstrapApplication} from '@angular/platform-browser';
+
+@Directive({
+  selector: '[listbox]',
+  standalone: true,
+  host: {
+    '[attr.aria-disabled]': 'disabled()',
+  },
+})
+export class Listbox {
+  value = input.required({transform: v => `${v}`});
+  disabled = input(false, {transform: v => v != null && `${v}` !== 'false'});
+}
+
+@Directive({
+  selector: '[option]',
+  standalone: true,
+  host: {
+    '[attr.aria-disabled]': 'isDisabled()',
+    '[attr.aria-selected]': 'isSelected()',
+  }
+})
+export class Option {
+  private listbox = inject(Listbox);
+
+  value = input.required({transform: v => `${v}`});
+  disabled = input(false, {transform: v => v != null && `${v}` !== 'false'});
+
+  protected isDisabled = computed(() => this.listbox.disabled() || this.disabled());
+  protected isSelected = computed(() => this.listbox.value() === this.value());
+}
 
 @Component({
   selector: 'greet',
   standalone: true,
+  imports: [Listbox, Option],
   template: `
     {{ counter() }} -- {{label()}}
+    
+    <ul listbox value="3">
+      @for (v of [1, 2, 3, 4, 5]; track $index) {
+        <li option [value]="v" [disabled]="v === 2">{{v}}</li>
+      }
+    </ul>
   `,
 })
 export class Greet<T> {
