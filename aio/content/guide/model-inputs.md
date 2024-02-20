@@ -1,6 +1,7 @@
 # Model inputs
 
-Model inputs are a way to define a signal-based input that automatically emits its value when it changes.
+**Model inputs** are a special type of input that enable a component to propagate new values
+back to another component.
 
 <div class="alert is-helpful">
 
@@ -8,96 +9,120 @@ Model inputs are currently in [developer preview](/guide/releases#developer-prev
 
 </div>
 
-For example, using `model` in the directive below will expose an input called `value` that allows for the value to be set through a data binding and an ouput called `valueChange` that will emit when calling `value.set` or `value.update`.
+When creating a component, you can define a model input similarly to how you create a standard
+input.
 
 ```typescript
-import {Directive, model} from '@angular/core';
+import {Directive, model, input} from '@angular/core';
+
+@Directive({...})
+export class CustomCheckbox {
+  // This is a model input.
+  checked = model(false);
+
+  // This is a standard input.
+  disabled = input(false);
+}
+``` 
+
+Both types of input allow someone to bind a value into the property. However, **model inputs allow
+the component author to write values into the property**.
+
+In other respects, you can use model inputs the same way you use standard inputs. You can read the
+value by calling the signal function, including in reactive contexts like `computed` and `effect`.
+
+```typescript
+import {Directive, model, input} from '@angular/core';
 
 @Directive({
-  selector: 'input[my-dir]',
-  standalone: true,
+  selector: 'custom-checkbox',
+  template: '<div (click)="toggle()"> ... </div>',
 })
-export class MyDir {
-  value = model('');
-}
-```
+export class CustomCheckbox {
+  checked = model(false);
+  disabled = input(false);
 
-When binding to `value` using a two-way binding, the value of `myProperty` and `value` will be kept in sync automatically:
+  toggle() {
+    // While standard inputs are read-only, you can write directly to model inputs.
+    this.checked.set(!this.checked());
+  }
+}
+``` 
+
+When a component writes a new value into a model input, Angular can propagate the new value back
+to the component that is binding a value into that input. This is called **two-way binding** because
+values can flow in both directions.
+
+## Two-way binding with signals
+
+You can bind a writable signal to a model input.
 
 ```typescript
-import {Component} from '@angular/core';
-import {MyDir} from './my-dir';
-
 @Component({
-  template: '<input my-dir [(value)]="myProperty"/>',
-  imports: [MyDir],
-  standalone: true,
+  ...,
+  // `checked` is a model input.
+  // The parenthesis-inside-square-brackets syntax (aka "banana-in-a-box") creates a two-way binding
+  template: '<custom-checkbox [(checked)]="isAdmin" />',
 })
-export class MyDir {
-  myProperty = model('hello');
+export class UserProfile {
+  protected isAdmin = signal(false);
 }
 ```
 
-Angular supports two variants of model inputs:
+In the above, the `CustomCheckbox` can write values into its `checked` model input, which then
+propagates those values back to the `isAdmin` signal in `UserProfile`. This binding keeps that
+values of `checked` and `isAdmin` in sync. Notice that the binding passes the `isAdmin` signal
+itself, not the _value_ of the signal.
 
-**Optional model inputs**
-Model inputs are optional by default, unless you use `model.required`.
-You can specify an explicit initial value, or Angular will use `undefined` implicitly.
+## Two-way binding with plain properties
 
-**Required model inputs**
-Required model inputs always have a value of the given input type.
-They are declared using the `model.required` function.
+You can bind a plain JavaScript property to a model input.
 
 ```typescript
-import {Component, input} from '@angular/core';
-
-@Component({...})
-export class MyComp {
-  // optional
-  firstName = model<string>();         // ModelSignal<string|undefined>
-  age = model(0);                      // ModelSignal<number>
-
-  // required
-  lastName = model.required<string>(); // ModelSignal<string>
+@Component({
+  ...,
+  // `checked` is a model input.
+  // The parenthesis-inside-square-brackets syntax (aka "banana-in-a-box") creates a two-way binding
+  template: '<custom-checkbox [(checked)]="isAdmin" />',
+})
+export class UserProfile {
+  protected isAdmin = false;
 }
 ```
 
-A model input is automatically recognized by Angular whenever you use the `model` or `model.required` functions as initializer of class members.
+In the above, the `CustomCheckbox` can write values into its `checked` model input, which then
+propagates those values back to the `isAdmin` property in `UserProfile`. This binding keeps that
+values of `checked` and `isAdmin` in sync.
 
-## Differences between `model()` and `input()`
+## Implicit `change` events
 
-Both `input()` and `model()` functions are ways to define signal-based inputs in Angular, but they differ in a few ways:
-1. `model()` defines **both** an input and an output. The output's name is always the name of the input suffixed with `Change` to support two-way bindings. It will be up to the consumer of your directive to decide if they want to use just the input, just the output, or both.
-2. `ModelSignal` is a `WritableSignal` which means that its value can be changed from anywhere using the `set` and `update` methods. When a new value is assigned, the `ModelSignal` will emit to its output. This is different from `InputSignal` which is read-only and can only be changed through the template.
-3. Model inputs do not support input transforms while signal inputs do.
-
-
-## Aliasing a model
-
-Angular uses the class member name as the name of the model input.
-You can alias models to change their public name to be something different.
+When you declare a model input in a component or directive, Angular automatically creates a
+corresponding [output](inputs-outputs) for that model. The output's
+name is the model input's name suffixed with "Change".
 
 ```typescript
-class StudentDirective {
-  age = model(0, {alias: 'studentAge'});
+@Directive({...})
+export class CustomCheckbox {
+  // This automatically creates an output named "checkedChange".
+  checked = model(false);
 }
 ```
 
-This exposes a `studentAge` input and a `studentAgeChange` output on the `StudentDirective`.
+Angular emits this change event whenever you write a new value into the model input by calling
+its `set` or `update` methods.
 
-## Using in templates
+## Customizing model inputs
 
-Model inputs are writable signals. As with signals declared via `signal()`, you access the current value of the model by calling the model signal.
+You can mark a model input as required or provide an alias in the same way as a
+[standard input](./signal-inputs).
 
-```html
-<p>First name: {{firstName()}}</p>
-<p>Last name: {{lastName()}}</p>
-```
+Model inputs do not support input transforms.
 
-This access to the value is captured in reactive contexts and can notify active consumers, like Angular itself, whenever the value changes.
+## When to use model inputs
 
-A model signal in practice is an extension of `WritableSignal` that you know from [the signals guide](/guide/signals#writable-signals).
+Use model inputs in components that exist to modify a value based on user interaction.
+Custom form controls, such as a date picker or combobox, should use model inputs for their
+primary value.
 
-```typescript
-export class ModelSignal<T> extends WritableSignal<T> { ... }`.
-```
+Avoid using model inputs as a convenience to avoid introducing an additional class property for
+containing local state.
