@@ -567,7 +567,7 @@ function convertDeclareDirectiveFacadeToMetadata(
     deps: null,
     typeArgumentCount: 0,
     fullInheritance: false,
-    isStandalone: declaration.isStandalone ?? false,
+    isStandalone: declaration.isStandalone ?? true,
     isSignal: declaration.isSignal ?? false,
     hostDirectives,
   };
@@ -1018,7 +1018,7 @@ function convertDeclarePipeFacadeToMetadata(declaration: R3DeclarePipeFacade): R
     pipeName: declaration.name,
     deps: null,
     pure: declaration.pure ?? true,
-    isStandalone: declaration.isStandalone ?? false,
+    isStandalone: declaration.isStandalone ?? true,
   };
 }
 

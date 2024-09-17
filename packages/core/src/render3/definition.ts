@@ -602,7 +602,7 @@ export function ɵɵdefinePipe<T>(pipeDef: {
     name: pipeDef.name,
     factory: null,
     pure: pipeDef.pure !== false,
-    standalone: pipeDef.standalone === true,
+    standalone: pipeDef.standalone !== false,
     onDestroy: pipeDef.type.prototype.ngOnDestroy || null,
   };
 }
@@ -635,7 +635,7 @@ export function getPipeDef<T>(type: any): PipeDef<T> | null {
  */
 export function isStandalone(type: Type<unknown>): boolean {
   const def = getComponentDef(type) || getDirectiveDef(type) || getPipeDef(type);
-  return def !== null ? def.standalone : false;
+  return def?.standalone ?? true;
 }
 
 export function getNgModuleDef<T>(type: any, throwNotFound: true): NgModuleDef<T>;
@@ -665,7 +665,7 @@ function getNgDirectiveDef<T>(
     inputTransforms: null,
     inputConfig: directiveDefinition.inputs || EMPTY_OBJ,
     exportAs: directiveDefinition.exportAs || null,
-    standalone: directiveDefinition.standalone === true,
+    standalone: directiveDefinition.standalone !== false,
     signals: directiveDefinition.signals === true,
     selectors: directiveDefinition.selectors || EMPTY_ARRAY,
     viewQuery: directiveDefinition.viewQuery || null,

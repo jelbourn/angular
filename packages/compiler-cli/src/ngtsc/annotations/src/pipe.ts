@@ -175,7 +175,7 @@ export class PipeDecoratorHandler
       pure = pureValue;
     }
 
-    let isStandalone = false;
+    let isStandalone = true;
     if (pipe.has('standalone')) {
       const expr = pipe.get('standalone')!;
       const resolved = this.evaluator.evaluate(expr);
